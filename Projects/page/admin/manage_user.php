@@ -116,7 +116,8 @@ function editUser($conn) {
     
 
     if ($stmt->execute()) {
-        return('ข้อมูลผู้ใช้แก้ไขสำเร็จ');
+        echo ('ข้อมูลผู้ใช้แก้ไขสำเร็จ');
+        exit();
     } else {
         echo "แก้ไขผิดพลาด: " . $stmt->error;
         exit();
