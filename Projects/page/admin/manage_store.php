@@ -23,8 +23,6 @@ if ($result->num_rows > 0) {
     $name = $user['name'];
     $surname = $user['surname'];
     $role = $user['role'];
-    $store_id = $user['store_id']; // อาจเป็น null ได้
-    $store_name = $user['store_name'];
 } else {
     header("Location: login.php");
     exit();
@@ -145,10 +143,22 @@ function deleteStore($conn, $storeId) {
     }
     exit();
 
+   
     
 }
 
-$stores = getStores($conn);
+$search = isset($_GET['search']) ? $_GET['search'] : '';
+$search_param = "%$search%";
+$search_query = "SELECT s.store_id, s.store_name, s.tel_store, s.update_at, 
+                        a.street, a.district, a.province, a.postal_code
+                 FROM stores s
+                 JOIN address a ON s.location_id = a.location_id
+                 WHERE (s.store_id LIKE ? OR s.store_name LIKE ?)";
+$stmt = $conn->prepare($search_query);
+$stmt->bind_param("ss", $search_param, $search_param);
+$stmt->execute();
+$search_result = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+
 ?>
 
 <!DOCTYPE html>
@@ -158,84 +168,12 @@ $stores = getStores($conn);
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Store Management System</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-    <style>
-         body {
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-            background-color: #f5f5f5; /* สีขาวอ่อนสำหรับพื้นหลัง */
-            color: #2c3e50; /* สีข้อความเป็นโทนสีเข้ม */
-        }
-        #banner {
-            background-color: #ffffff; /* สีขาว */
-            border-bottom: 2px solid #2c3e50; /* เส้นขอบสีเขียว */
-            padding: 15px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-        #user-info {
-            margin-left: auto;
-            color: black; /* ฟอนต์สีดำ */
-        }
-        #sidebar {
-            width: 250px;
-            background-color: #4caf50; /* สีเขียว */
-            border-right: 2px solid #2c3e50;
-            color: #ffffff; /* สีข้อความเป็นสีขาว */
-            padding-top: 20px;
-            position: fixed;
-            height: 100%;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-        }
-        #sidebar a {
-            color: #ffffff; /* สีขาว */
-            text-decoration: none;
-            padding: 15px;
-            display: block;
-            transition: background-color 0.3s;
-        }
-        #sidebar a:hover {
-            background-color: #66bb6a; /* สีเขียวอ่อนเมื่อวางเมาส์ */
-        }
-        #main-content {
-            margin-left: 300px;
-            margin-top: 20px;
-            padding: 50px;
-            background-color: #ffffff; /* สีขาว */
-            border-radius: 8px; /* ขอบโค้งมน */
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-        }
-        table {
-            background-color: #ffffff; /* สีขาว */
-        }
-        table th {
-            background-color: #4caf50; /* สีเขียว */
-            color: #ffffff; /* สีข้อความเป็นสีขาว */
-        }
-        .btn-primary {
-            background-color: #4caf50;
-            border-color: #4caf50;
-        }
-        .btn-primary:hover {
-            background-color: #66bb6a;
-            border-color: #66bb6a;
-        }
-        .btn-danger {
-            background-color: #e53935;
-            border-color: #e53935;
-        }
-        .modal-content {
-            border-radius: 8px;
-        }
-    </style>
+    <link rel="stylesheet" href="./respontive.css">
 </head>
 <body>
-<header id="banner">
-        <a id="user-info">Name: <?php echo $name . ' ' . $surname; ?> | Role: <?php echo $role; ?>
-        <?php if (!is_null($store_name)) { ?> 
-            | Store: <?php echo $store_name; ?> 
-        <?php } ?>
+    <button id="menu-toggle">☰</button>
+    <header id="banner">
+        <a id="user-info">Name: <?php echo $name . ' ' . $surname; ?> | Role: <?php echo $role; ?></a>
         <button class="btn btn-danger" onclick="window.location.href='../../auth/logout.php'">Log Out</button>
     </header>
     <div id="sidebar">
@@ -247,12 +185,21 @@ $stores = getStores($conn);
         <a href="notification-settings.php">Notification Settings</a>
         <a href="reports.php">Reports</a>
     </div>
-    <div class="container" id="main-content">
+    <div class="container-fluid" id="main-content">
         <h2>Store Management System</h2>
+        <form action="" method="GET" class="mb-3">
+            <div class="input-group">
+                <input type="text" class="form-control" placeholder="Search by Store ID or Name" name="search" value="<?php echo htmlspecialchars($search); ?>">
+                <div class="input-group-append">
+                    <button class="btn btn-primary" type="submit">Search</button>
+                </div>
+            </div>
+        </form>
         <button type="button" class="btn btn-primary mb-3" data-toggle="modal" data-target="#addStoreModal">
             Add Store
         </button>
         <div class="table-responsive">
+        <?php if (count($search_result) > 0): ?>
             <table class="table table-striped">
                 <thead>
                     <tr>
@@ -265,7 +212,7 @@ $stores = getStores($conn);
                     </tr>
                 </thead>
                 <tbody>
-                    <?php foreach ($stores as $store): ?>
+                    <?php foreach ($search_result as $store): ?>
                     <tr>
                         <td><?php echo $store['store_id']; ?></td>
                         <td><?php echo $store['store_name']; ?></td>
@@ -280,13 +227,17 @@ $stores = getStores($conn);
                         <td>
                             <button type="button" class="btn btn-sm btn-info edit-store" data-toggle="modal" data-target="#editStoreModal" 
                                     data-store='<?php echo json_encode($store); ?>'>Edit</button>
-                            <button type="button" class="btn btn-sm btn-danger delete-store" data-store-id="
-                                    <?php echo $store['store_id']; ?>">Delete</button>
+                            <button type="button" class="btn btn-sm btn-danger delete-store" data-store-id="<?php echo $store['store_id']; ?>">Delete</button>
                         </td>
                     </tr>
                     <?php endforeach; ?>
                 </tbody>
             </table>
+        <?php else: ?>
+        <div class="alert alert-warning mt-3">
+            ไม่พบสาขาที่ตรงกับคำค้นหา "<?php echo htmlspecialchars($search); ?>"
+        </div>
+        <?php endif; ?>
         </div>
     </div>
 
@@ -384,7 +335,6 @@ $stores = getStores($conn);
             </div>
         </div>
     </div>
-
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
@@ -429,7 +379,12 @@ $stores = getStores($conn);
                         location.reload();
                     });
                 }
+            }); 
+            document.getElementById('menu-toggle').addEventListener('click', function() {
+                document.getElementById('sidebar').classList.toggle('active');
+                document.getElementById('main-content').classList.toggle('sidebar-active');
             });
+   
         });
     </script>
 </body>

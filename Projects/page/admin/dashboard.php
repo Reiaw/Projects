@@ -23,8 +23,6 @@ if ($result->num_rows > 0) {
     $name = $user['name'];
     $surname = $user['surname'];
     $role = $user['role'];
-    $store_id = $user['store_id']; // อาจเป็น null ได้
-    $store_name = $user['store_name'];
 } else {
     header("Location: login.php");
     exit();
@@ -40,84 +38,12 @@ $conn->close();
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Store Management System</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-    <style>
-           body {
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-            background-color: #f5f5f5;
-            color: #2c3e50;
-        }
-        #banner {
-            background-color: #ffffff;
-            border-bottom: 2px solid #2c3e50;
-            padding: 15px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-        #user-info {
-            margin-left: auto;
-            color: black; /* ฟอนต์สีดำ */
-        }
-        #sidebar {
-            width: 250px;
-            background-color: #4caf50;
-            border-right: 2px solid #2c3e50;
-            color: #ffffff;
-            padding-top: 20px;
-            position: fixed;
-            height: 100%;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-        }
-        #sidebar a {
-            color: #ffffff;
-            text-decoration: none;
-            padding: 15px;
-            display: block;
-            transition: background-color 0.3s;
-        }
-        #sidebar a:hover {
-            background-color: #66bb6a;
-        }
-        #main-content {
-            margin-left: 300px;
-            margin-top: 20px;
-            padding: 50px;
-            background-color: #ffffff;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-        }
-        table {
-            background-color: #ffffff;
-        }
-        table th {
-            background-color: #4caf50;
-            color: #ffffff;
-        }
-        .btn-primary {
-            background-color: #4caf50;
-            border-color: #4caf50;
-        }
-        .btn-primary:hover {
-            background-color: #66bb6a;
-            border-color: #66bb6a;
-        }
-        .btn-danger {
-            background-color: #e53935;
-            border-color: #e53935;
-        }
-        .modal-content {
-            border-radius: 8px;
-        }
-    </style>
+    <link rel="stylesheet" href="./respontive.css">
 </head>
 <body>
-<header id="banner">
-        <a id="user-info">Name: <?php echo $name . ' ' . $surname; ?> | Role: <?php echo $role; ?>
-        <?php if (!is_null($store_id)) { ?> 
-            | Store: <?php echo $store_name; ?> 
-        <?php } ?>
+    <button id="menu-toggle">☰</button>
+    <header id="banner">
+        <a id="user-info">Name: <?php echo $name . ' ' . $surname; ?> | Role: <?php echo $role; ?></a>
         <button class="btn btn-danger" onclick="window.location.href='../../auth/logout.php'">Log Out</button>
     </header>
     <div id="sidebar">
@@ -129,7 +55,17 @@ $conn->close();
         <a href="notification-settings.php">Notification Settings</a>
         <a href="reports.php">Reports</a>
     </div>
-    <div class="container" id="main-content">
+    <div class="container-fluid" id="main-content">
+        <!-- Your main content goes here -->
     </div>
- </body>
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script>
+        document.getElementById('menu-toggle').addEventListener('click', function() {
+            document.getElementById('sidebar').classList.toggle('active');
+            document.getElementById('main-content').classList.toggle('sidebar-active');
+        });
+    </script>
+</body>
 </html>

@@ -2,8 +2,8 @@
 session_start();
 include('../../config/db.php');
   // เปลี่ยนเส้นทางการเชื่อมต่อฐานข้อมูล
-if ($_SESSION['role'] !== 'staff') {
-    header('Location: ../../auth/login.php');  // เปลี่ยนเส้นทางการเช็ค role
+  if ($_SESSION['role'] !== 'staff' || $_SESSION['store_id'] === null) {
+    header('Location: ../../auth/login.php');
     exit;
 }
 

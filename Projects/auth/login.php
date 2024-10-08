@@ -22,7 +22,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             } else {
                 $_SESSION['role'] = $user['role'];
                 $_SESSION['user_id'] = $user['user_id'];
-                
+                $_SESSION['store_id'] = $user['store_id'];
+                 
                 switch ($user['role']) {
                     case 'admin':
                         header('Location: ../page/admin/dashboard.php');

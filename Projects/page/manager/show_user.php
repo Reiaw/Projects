@@ -8,8 +8,10 @@ include('../../config/db.php');
 }
 
 $user_id = $_SESSION['user_id'];
+$store_id = $_SESSION['store_id'];
 
 
+// ดึงข้อมูลผู้ใช้ปัจจุบัน
 $query = "SELECT u.name, u.surname, u.role, u.store_id, s.store_name 
           FROM users u
           LEFT JOIN stores s ON u.store_id = s.store_id 
@@ -24,16 +26,27 @@ if ($result->num_rows > 0) {
     $name = $user['name'];
     $surname = $user['surname'];
     $role = $user['role'];
-    $store_id = $user['store_id']; // อาจเป็น null ได้
     $store_name = $user['store_name'];
 } else {
-    header("Location: login.php");
+    header("Location: ../../auth/login.php");
     exit();
 }
+
+// ค้นหาผู้ใช้
+$search = isset($_GET['search']) ? $_GET['search'] : '';
+$search_query = "SELECT u.user_id, u.name, u.surname, u.email, u.tel_user, u.role
+                 FROM users u
+                 WHERE u.store_id = ? AND (u.user_id LIKE ? OR u.name LIKE ?)";
+$stmt = $conn->prepare($search_query);
+$search_param = "%$search%";
+$stmt->bind_param("iss", $store_id, $search_param, $search_param);
+$stmt->execute();
+$search_result = $stmt->get_result();
 
 $stmt->close();
 $conn->close();
 ?>
+<!DOCTYPE html>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -65,7 +78,47 @@ $conn->close();
         <a href="reports.php">Reports </a>
     </div>
     <div class="container" id="main-content">
-        <!-- Your page-specific content goes here -->
+        <h2>Users in <?php echo $store_name; ?></h2>
+        <form action="" method="GET" class="mb-3">
+            <div class="input-group">
+                <input type="text" class="form-control" placeholder="Search by User ID or Name" name="search" value="<?php echo htmlspecialchars($search); ?>">
+                <div class="input-group-append">
+                    <button class="btn btn-primary" type="submit">Search</button>
+                </div>
+            </div>
+        </form>
+        <?php if ($search_result->num_rows > 0): ?>
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>User ID</th>
+                        <th>Name</th>
+                        <th>Surname</th>
+                        <th>Email</th>
+                        <th>Telephone</th>
+                        <th>Role</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php while ($row = $search_result->fetch_assoc()): ?>
+                    <tr>
+                        <td><?php echo htmlspecialchars($row['user_id']); ?></td>
+                        <td><?php echo htmlspecialchars($row['name']); ?></td>
+                        <td><?php echo htmlspecialchars($row['surname']); ?></td>
+                        <td><?php echo htmlspecialchars($row['email']); ?></td>
+                        <td><?php echo htmlspecialchars($row['tel_user']); ?></td>
+                        <td><?php echo htmlspecialchars($row['role']); ?></td>
+                    </tr>
+                    <?php endwhile; ?>
+                </tbody>
+            </table>
+            <?php else: ?>
+            <div class="alert alert-warning mt-3">
+                ไม่พบผู้ใช้งานที่ตรงกับคำค้นหา "<?php echo htmlspecialchars($search); ?>"
+            </div>
+             <?php endif; ?>
+        </div>
     </div>
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
