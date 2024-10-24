@@ -34,18 +34,44 @@ function generateBarcode() {
     return uniqid() . rand(1000, 9999);
 }
 
+// Function to generate and save barcode image
+function generateBarcodeImage($barcode, $order_id) {
+    $generator = new \Picqer\Barcode\BarcodeGeneratorPNG();
+    
+    $upload_dir = __DIR__ . '/page/barcodes/';
+    
+    $filename = $order_id . '.png';
+    $barcode_file = $upload_dir . $filename;
+    
+    // สร้าง barcode
+    try {
+        $barcode_img = $generator->getBarcode($barcode, $generator::TYPE_CODE_128);
+        file_put_contents($barcode_file, $barcode_img);
+        return '../barcodes/' . $filename;
+    } catch (Exception $e) {
+        error_log("Barcode generation failed: " . $e->getMessage());
+        return false;
+    }
+}
+
 // Handle order processing
 if (isset($_POST['process_order'])) {
     $order_id = $_POST['order_id'];
     $expiration_dates = $_POST['expiration_date']; // Array of expiration dates for each detail_order_id
     
+    // สร้างบาร์โค้ดเฉพาะสำหรับทั้งออเดอร์
+    $order_barcode = generateBarcode();
+
+    // Save the barcode image and get the file path
+    $barcode_img_path = generateBarcodeImage($order_barcode, $order_id);
+
     // Start transaction
     $conn->begin_transaction();
     
     try {
         // Update order status to 'processing'
-        $update_order = $conn->prepare("UPDATE orders SET order_status = 'shipped', shipping_date = CURRENT_TIMESTAMP WHERE order_id = ?");
-        $update_order->bind_param("i", $order_id);
+        $update_order = $conn->prepare("UPDATE orders SET order_status = 'shipped', shipping_date = CURRENT_TIMESTAMP, barcode = ?, barcode_pic = ? WHERE order_id = ?");
+        $update_order->bind_param("ssi", $order_barcode, $barcode_img_path, $order_id);
         $update_order->execute();
 
         // Get order details and store_id
@@ -76,11 +102,10 @@ if (isset($_POST['process_order'])) {
             // Generate barcode for each item in the set
             for ($i = 0; $i < $order_quantity; $i++) {
                 // Insert one record per item in the set
-                $insert_product = $conn->prepare("INSERT INTO product (listproduct_id, store_id, barcode, 
+                $insert_product = $conn->prepare("INSERT INTO product (listproduct_id, store_id, 
                                                status, quantity, expiration_date, detail_order_id) 
-                                               VALUES (?, ?, ?, 'available', ?, ?, ?)");
-                $barcode = generateBarcode(); // Generate unique barcode for each item
-                $insert_product->bind_param("iisisi", $listproduct_id, $store_id, $barcode, 
+                                               VALUES (?, ?, 'available', ?, ?, ?)");
+                $insert_product->bind_param("iiisi", $listproduct_id, $store_id, 
                                          $product_quantity, $expiration_date, $detail_order_id);
                 $insert_product->execute();
             }
