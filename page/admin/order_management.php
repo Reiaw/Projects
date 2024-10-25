@@ -2,6 +2,8 @@
 session_start();
 include('../../config/db.php');
 require_once('../../vendor/autoload.php');
+use Picqer\Barcode\BarcodeGeneratorPNG;
+use Picqer\Barcode\Exceptions\BarcodeException;
 
 if ($_SESSION['role'] !== 'admin') {
     header('Location: ../../auth/login.php');
@@ -34,24 +36,41 @@ function generateBarcode() {
     return uniqid() . rand(1000, 9999);
 }
 
-// Function to generate and save barcode image
-function generateBarcodeImage($barcode, $order_id) {
-    $generator = new \Picqer\Barcode\BarcodeGeneratorPNG();
-    
-    $upload_dir = __DIR__ . '/page/barcodes/';
-    
-    $filename = $order_id . '.png';
-    $barcode_file = $upload_dir . $filename;
-    
-    // สร้าง barcode
-    try {
-        $barcode_img = $generator->getBarcode($barcode, $generator::TYPE_CODE_128);
-        file_put_contents($barcode_file, $barcode_img);
-        return '../barcodes/' . $filename;
-    } catch (Exception $e) {
-        error_log("Barcode generation failed: " . $e->getMessage());
-        return false;
-    }
+// Function to generate barcode image and store it in ../barcodes
+function generateBarcodeImage($barcode) {
+     // สร้างบาร์โค้ด
+     $generator = new BarcodeGeneratorPNG();
+     $barcode_data = $generator->getBarcode($barcode, $generator::TYPE_CODE_128);
+     
+     // กำหนดพาธที่ต้องการบันทึกไฟล์
+     $barcode_img_path = '../barcodes/' . $barcode . '.png';
+     
+     // สร้างภาพจากข้อมูลบาร์โค้ดโดยใช้ GD
+     $image = imagecreatefromstring($barcode_data);
+     if ($image === false) {
+         throw new BarcodeException('Failed to create image from barcode data');
+     }
+ 
+     // สร้างภาพที่มีพื้นหลังสีขาว
+     $width = imagesx($image);
+     $height = imagesy($image);
+     $white_bg_image = imagecreatetruecolor($width, $height);
+     
+     // กำหนดสีพื้นหลังเป็นสีขาว
+     $white = imagecolorallocate($white_bg_image, 255, 255, 255); 
+     imagefill($white_bg_image, 0, 0, $white);
+     
+     // คัดลอกบาร์โค้ดลงในภาพที่มีพื้นหลังสีขาว
+     imagecopy($white_bg_image, $image, 0, 0, 0, 0, $width, $height);
+     
+     // บันทึกภาพไปยังไฟล์
+     imagepng($white_bg_image, $barcode_img_path);
+     
+     // ทำการลบภาพจากหน่วยความจำ
+     imagedestroy($image);
+     imagedestroy($white_bg_image);
+ 
+     return $barcode_img_path;
 }
 
 // Handle order processing
@@ -61,13 +80,10 @@ if (isset($_POST['process_order'])) {
     
     // สร้างบาร์โค้ดเฉพาะสำหรับทั้งออเดอร์
     $order_barcode = generateBarcode();
-
-    // Save the barcode image and get the file path
-    $barcode_img_path = generateBarcodeImage($order_barcode, $order_id);
-
+     // Generate barcode image and get image path
+     $barcode_img_path = generateBarcodeImage($order_barcode);
     // Start transaction
     $conn->begin_transaction();
-    
     try {
         // Update order status to 'processing'
         $update_order = $conn->prepare("UPDATE orders SET order_status = 'shipped', shipping_date = CURRENT_TIMESTAMP, barcode = ?, barcode_pic = ? WHERE order_id = ?");
@@ -110,12 +126,15 @@ if (isset($_POST['process_order'])) {
                 $insert_product->execute();
             }
         }
+        if (!$update_order->execute()) {
+            throw new Exception("Failed to update order with barcode information");
+        }
 
         $conn->commit();
         // Add success message or redirect
     } catch (Exception $e) {
+        error_log("Order processing failed: " . $e->getMessage());
         $conn->rollback();
-        // Add error handling
     }
 }
 
