@@ -1,20 +1,20 @@
 <?php
 session_start();
 include('../../config/db.php');
-  // เปลี่ยนเส้นทางการเชื่อมต่อฐานข้อมูล
+// Redirect to login if user is not an admin
 if ($_SESSION['role'] !== 'admin') {
-    header('Location: ../../auth/login.php');  // เปลี่ยนเส้นทางการเช็ค role
+    header('Location: ../../auth/login.php');
     exit;
 }
 
-$user_id = $_SESSION['user_id'];
+$use_id = $_SESSION['user_id'];
 
 $query = "SELECT u.name, u.surname, u.role, u.store_id, s.store_name 
           FROM users u
           LEFT JOIN stores s ON u.store_id = s.store_id 
           WHERE u.user_id = ?";
 $stmt = $conn->prepare($query);
-$stmt->bind_param("i", $user_id);
+$stmt->bind_param("i", $use_id);
 $stmt->execute();
 $result = $stmt->get_result();
 
@@ -63,7 +63,7 @@ function addStore($conn, $storeName, $telStore, $street, $district, $province, $
     $stmt->execute();
     $result = $stmt->get_result();
     if ($result->num_rows > 0) {
-        echo "มีสาขานี้อยู่แล้ว";
+        echo "This branch already exists";
         exit();
     }
 
@@ -77,10 +77,11 @@ function addStore($conn, $storeName, $telStore, $street, $district, $province, $
     $stmt = $conn->prepare("INSERT INTO stores (store_name, location_id, tel_store) VALUES (?, ?, ?)");
     $stmt->bind_param("sis", $storeName, $locationId, $telStore);
     if ($stmt->execute()){
-        echo ('เพื่มสาขาสำเร็จ');
+        echo ('Branch added successfully');
+        logTransaction($conn, $_SESSION['user_id'], 'add_s');
         exit();
     } else {
-        echo ('ไม่สามารถเพิ่มสาขาได้'). $stmt->error;
+        echo ('Could not add branch'). $stmt->error;
         exit();
     }
     exit();
@@ -95,7 +96,7 @@ function updateStore($conn, $storeId, $storeName, $telStore, $street, $district,
     $stmt->execute();
     $result = $stmt->get_result();
     if ($result->num_rows > 0) {
-        echo "มีสาขานี้ในระบบแล้ว";
+        echo "This branch already exists in the system";
         exit();
     }
 
@@ -110,10 +111,11 @@ function updateStore($conn, $storeId, $storeName, $telStore, $street, $district,
     $stmt = $conn->prepare("UPDATE stores SET store_name = ?, tel_store = ? WHERE store_id = ?");
     $stmt->bind_param("ssi", $storeName, $telStore, $storeId);
     if ($stmt->execute()){
-        echo ('ข้อมูลสาขาแก้ไขสำเร็จ');
+        echo ('Branch details updated successfully');
+        logTransaction($conn, $_SESSION['user_id'], 'edit_s');
         exit();
     } else {
-        echo ('ไม่สามารถแก้ข้อมูลสาขาได้'). $stmt->error;
+        echo ('Could not update branch details'). $stmt->error;
         exit();
     }
     exit();
@@ -127,7 +129,7 @@ function deleteStore($conn, $storeId) {
     $stmt->execute();
     $result = $stmt->get_result();
     if ($result->num_rows > 0) {
-        echo "ไม่สามารถลบสาขานี้: มีผู้ใช้งานอยู่ในสาขา";
+        echo "Cannot delete this branch: there are users associated with it";
         exit();
     }
 
@@ -135,18 +137,25 @@ function deleteStore($conn, $storeId) {
     $stmt = $conn->prepare("DELETE FROM stores WHERE store_id = ?");
     $stmt->bind_param("i", $storeId);
     if ($stmt->execute()){
-        echo ('สาขานี้ถูกลบสำเร็จ');
+        echo ('Branch deleted successfully');
+        logTransaction($conn, $_SESSION['user_id'], 'del_s');
         exit();
     } else {
-        echo ('ไม่สามารถลบสาขานีี้ได้'). $stmt->error;
+        echo ('Could not delete branch'). $stmt->error;
         exit();
     }
     exit();
 
-   
-    
 }
+function logTransaction($conn, $use_id, $transaction_type) {
+    $sql = "INSERT INTO transaction_manage (user_id, transaction_type,created_at) VALUES (?, ?, NOW())";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("is", $use_id, $transaction_type); 
 
+    if (!$stmt->execute()) {
+        echo "Transaction logging failed: " . $stmt->error;
+    }
+}
 $search = isset($_GET['search']) ? $_GET['search'] : '';
 $search_param = "%$search%";
 $search_query = "SELECT s.store_id, s.store_name, s.tel_store, s.update_at, 
@@ -182,6 +191,8 @@ $search_result = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
         <a href="manage_user.php">Manage Users</a>
         <a href="manage_store.php">Manage Stores</a>
         <a href="product_menu.php">Product Menu</a>
+        <a href="order_management.php">Order reqeuest</a>
+        <a href="product_management.php">Product report</a>
         <a href="notification-settings.php">Notification Settings</a>
         <a href="reports.php">Reports</a>
     </div>
@@ -352,7 +363,7 @@ $search_result = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
             // Edit Store
             $('.edit-store').click(function() {
                 var store = $(this).data('store');
-                $('#editStoreId').val(store.store_id);
+                $('#editStoreId').val(store.store_id );
                 $('#editStoreName').val(store.store_name);
                 $('#editTelStore').val(store.tel_store);
                 $('#editStreet').val(store.street);

@@ -8,22 +8,22 @@ if (!isset($_SESSION['user_id'])) {
     exit();
 }
 
-$user_id = $_SESSION['user_id'];
+$use_id = $_SESSION['user_id'];
 
 $query = "SELECT u.name, u.surname, u.role, s.store_name 
           FROM users u
           LEFT JOIN stores s ON u.store_id = s.store_id 
           WHERE u.user_id = ?";
 $stmt = $conn->prepare($query);
-$stmt->bind_param("i", $user_id);
+$stmt->bind_param("i", $use_id);
 $stmt->execute();
 $result = $stmt->get_result();
 
 if ($result->num_rows > 0) {
-    $user = $result->fetch_assoc();
-    $name = $user['name'];
-    $surname = $user['surname'];
-    $role = $user['role'];
+    $use = $result->fetch_assoc();
+    $name = $use['name'];
+    $surname = $use['surname'];
+    $role = $use['role'];
 } else {
     header("Location: login.php");
     exit();
@@ -62,7 +62,7 @@ function getStores($conn) {
     return $result->fetch_all(MYSQLI_ASSOC);
 }
 
-/// Function to add a new user
+// Function to add a new user
 function addUser($conn) {
     $name = $_POST['name'];
     $surname = $_POST['surname'];
@@ -73,13 +73,13 @@ function addUser($conn) {
     $store_id = ($_POST['store_id'] === "null") ? NULL : $_POST['store_id'];
     $reset_password = 1;
 
-    // ตรวจสอบเงื่อนไข role และ store_id
+    // Check role and store_id conditions
     if ($role == 'admin' && $store_id !== NULL) {
-        echo "สำหรับ ตำแหน่ง 'admin' ไม่สามารถเลือกสาขาที่อยู่ได้";
+        echo "For the 'admin' role, a store cannot be selected";
         exit();
     }
     if (($role == 'manager' || $role == 'staff') && $store_id === NULL) {
-        echo "สำหรับ ตำแหน่ง 'manager' หรือ 'staff' ต้องเลือกสาขาที่อยู่";
+        echo "For the 'manager' or 'staff' role, a store must be selected";
         exit();
     }
     // Check if email already exists
@@ -89,23 +89,24 @@ function addUser($conn) {
     $stmt->execute();
     
     if ($stmt->get_result()->num_rows > 0) {
-        echo ('อีเมลนี้มีอยู่แล้ว');
+        echo "This email already exists";
         exit();
     }
 
-     // proceed with user creation
-     $sql = "INSERT INTO users (name, surname, email, password, tel_user, role, store_id, reset_password) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
-     $stmt = $conn->prepare($sql);
-     $stmt->bind_param("ssssssis", $name, $surname, $email, $password, $tel_user, $role, $store_id, $reset_password);
+    // proceed with user creation
+    $sql = "INSERT INTO users (name, surname, email, password, tel_user, role, store_id, reset_password) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("ssssssis", $name, $surname, $email, $password, $tel_user, $role, $store_id, $reset_password);
     
     if ($stmt->execute()) {
-        echo "เพิ่มผู้ใช้สำเร็จ";
+        echo "User added successfully";
+        // Log transaction
+        logTransaction($conn, $_SESSION['user_id'], 'add_u');
         exit();
     } else {
-        echo "ผิดพลาด: " . $stmt->error;
+        echo "Error: " . $stmt->error;
         exit();
     }
-
 }
 
 // Function to edit a user
@@ -117,13 +118,13 @@ function editUser($conn) {
     $role = $_POST['role'];
     $store_id = ($_POST['store_id'] === "null") ? NULL : $_POST['store_id'];
 
-     // ตรวจสอบเงื่อนไข role และ store_id
-     if ($role == 'admin' && $store_id !== NULL) {
-        echo "สำหรับ ตำแหน่ง 'admin' ไม่สามารถเลือกสาขาที่อยู่ได้";
+    // Check role and store_id conditions
+    if ($role == 'admin' && $store_id !== NULL) {
+        echo "For the 'admin' role, a store cannot be selected";
         exit();
     }
     if (($role == 'manager' || $role == 'staff') && $store_id === NULL) {
-        echo "สำหรับ ตำแหน่ง 'manager' หรือ 'staff' ต้องเลือกสาขาที่อยู่";
+        echo "For the 'manager' or 'staff' role, a store must be selected";
         exit();
     }
     
@@ -132,13 +133,14 @@ function editUser($conn) {
     $stmt->bind_param("ssssii", $name, $surname, $tel_user, $role, $store_id, $user_id);
 
     if ($stmt->execute()) {
-        echo ('ข้อมูลผู้ใช้แก้ไขสำเร็จ');
+        echo "User information updated successfully";
+        // Log transaction
+        logTransaction($conn, $_SESSION['user_id'], 'edit_u');
         exit();
     } else {
-        echo "แก้ไขผิดพลาด: " . $stmt->error;
+        echo "Update failed: " . $stmt->error;
         exit();
     }
-    exit();
 }
 
 // Function to delete a user
@@ -150,18 +152,29 @@ function deleteUser($conn) {
     $stmt->bind_param("i", $user_id);
     
     if ($stmt->execute()) {
-        echo "ลบผู้ใช้สำเร็จ";
+        echo "User deleted successfully";
+        // Log transaction
+        logTransaction($conn, $_SESSION['user_id'], 'del_u');
         exit();
     } else {
-        echo "ลบผู้ใช้ไม่สำเร็จ: " . $stmt->error;
+        echo "User deletion failed: " . $stmt->error;
         exit();
     }
-    exit();
+}
+
+function logTransaction($conn, $use_id, $transaction_type) {
+    $sql = "INSERT INTO transaction_manage (user_id, transaction_type, created_at) VALUES (?, ?, NOW())";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("is", $use_id, $transaction_type);
+
+    if (!$stmt->execute()) {
+        echo "Transaction logging failed: " . $stmt->error;
+    }
 }
 
 $search = isset($_GET['search']) ? $_GET['search'] : '';
 $search_param = "%$search%";
-$search_query = "SELECT u.user_id, u.name, u.surname, u.email, u.tel_user, u.role, s.store_name, u.update_at
+$search_query = "SELECT u.user_id, u.name, u.surname, u.email, u.tel_user, u.role, s.store_id, s.store_name, u.update_at
                  FROM users u
                  LEFT JOIN stores s ON u.store_id = s.store_id
                  WHERE (u.user_id LIKE ? OR u.name LIKE ?)";
@@ -196,6 +209,8 @@ $stores = getStores($conn);
         <a href="manage_user.php">Manage Users</a>
         <a href="manage_store.php">Manage Stores</a>
         <a href="product_menu.php">Product Menu</a>
+        <a href="order_management.php">Order reqeuest</a>
+        <a href="product_management.php">Product report</a>
         <a href="notification-settings.php">Notification Settings</a>
         <a href="reports.php">Reports</a>
     </div>
@@ -301,7 +316,9 @@ $stores = getStores($conn);
                             <select class="form-control" id="store_id" name="store_id">
                                 <option value="null">No store</option>
                                 <?php foreach ($stores as $store): ?>
-                                <option value="<?php echo htmlspecialchars($store['store_id']); ?>"><?php echo htmlspecialchars($store['store_name']); ?></option>
+                                    <option value="<?php echo htmlspecialchars($store['store_id']); ?>">
+                                        <?php echo htmlspecialchars($store['store_name']); ?>
+                                    </option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
@@ -391,7 +408,11 @@ $stores = getStores($conn);
             $('#edit_surname').val(user.surname);
             $('#edit_tel_user').val(user.tel_user);
             $('#edit_role').val(user.role);
-            $('#edit_store_id').val(user.store_id);
+            if (user.store_id === null) {
+                $('#edit_store_id').val('null'); // Select "No store" option
+            } else {
+                $('#edit_store_id').val(user.store_id); // Select specific store
+            }
         });
         
         $('#editUserForm').submit(function(e) {
