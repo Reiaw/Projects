@@ -78,9 +78,6 @@ if (!empty($bind_params)) {
 $stmt->execute();
 $result = $stmt->get_result();
 $products = $result->fetch_all(MYSQLI_ASSOC);
-
-
-
 $stmt->close();
 $conn->close();
 ?>
@@ -125,8 +122,8 @@ $conn->close();
         <a href="order.php">Order</a>
         <a href="tracking.php">Tracking</a>
         <a href="scaning_product.php">Scaning Product</a>
+        <a href="resolution.php">Product Report</a>
         <a href="inventory.php">Inventory</a>
-        <a href="reports_ploblem.php">Reports Ploblem</a>
         <a href="reports.php">Reports </a>
     </div>
     <div id="main-content">
@@ -135,18 +132,17 @@ $conn->close();
             <div class="input-group">
                 <input style="width: 500px;" type="text" class="form-control" placeholder="Search by Product ID or Name" name="search"  value="<?php echo htmlspecialchars($search); ?>">
                 <select class="form-control" name="category" >
-                    <option value="">เลือกหมวดหมู่</option>
-                    <option value="กาแฟ  " <?php echo $category == 'กาแฟ' ? 'selected' : ''; ?>>กาแฟ </option>
-                    <option value="นมและครีม" <?php echo $category == 'นมและครีม' ? 'selected' : 'นมและครีม'; ?>>นมและครีม</option>
-                    <option value="ไซรัปและน้ำเชื่อม" <?php echo $category == 'ไซรัปและน้ำเชื่อม' ? 'selected' : 'ไซรัปและน้ำเชื่อม'; ?>>ไซรัปและน้ำเชื่อม</option>
-                    <option value="ผงเครื่องดื่มและส่วนผสมอื่นๆ" <?php echo $category == 'ผงเครื่องดื่มและส่วนผสมอื่นๆ' ? 'selected' : 'ผงเครื่องดื่มและส่วนผสมอื่นๆ'; ?>>ผงเครื่องดื่มและส่วนผสมอื่นๆ</option>
-                    <option value="ขนมและของว่าง" <?php echo $category == 'ขนมและของว่าง' ? 'selected' : 'ขนมและของว่าง'; ?>>ขนมและของว่าง</option>
-                    <option value="อุปกรณ์การชงกาแฟ" <?php echo $category == 'อุปกรณ์การชงกาแฟ' ? 'selected' : 'อุปกรณ์การชงกาแฟ'; ?>>อุปกรณ์การชงกาแฟ</option>
-                    <option value="แก้วและภาชนะบรรจุ" <?php echo $category == 'แก้วและภาชนะบรรจุ' ? 'selected' : 'แก้วและภาชนะบรรจุ'; ?>>แก้วและภาชนะบรรจุ</option>
-                    <option value="สารให้ความหวานและสารแต่งกลิ่นรส" <?php echo $category == 'สารให้ความหวานและสารแต่งกลิ่นรส' ? 'selected' : 'สารให้ความหวานและสารแต่งกลิ่นรส'; ?>>สารให้ความหวานและสารแต่งกลิ่นรส</option>
-                    <option value="ผลิตภัณฑ์เพิ่มมูลค่า" <?php echo $category == 'ผลิตภัณฑ์เพิ่มมูลค่า' ? 'selected' : 'ผลิตภัณฑ์เพิ่มมูลค่า'; ?>>ผลิตภัณฑ์เพิ่มมูลค่า</option>
-                    <option value="อุปกรณ์เสิร์ฟ" <?php echo $category == 'อุปกรณ์เสิร์ฟ' ? 'selected' : 'อุปกรณ์เสิร์ฟ'; ?>>อุปกรณ์เสิร์ฟ</option>
-                    
+                    <option value="">Select Category</option>
+                    <option value="กาแฟ  " <?php echo $category == 'กาแฟ' ? 'selected' : ''; ?>>Coffee</option>
+                    <option value="นมและครีม" <?php echo $category == 'นมและครีม' ? 'selected' : 'นมและครีม'; ?>>Milk and Cream</option>
+                    <option value="ไซรัปและน้ำเชื่อม" <?php echo $category == 'ไซรัปและน้ำเชื่อม' ? 'selected' : 'ไซรัปและน้ำเชื่อม'; ?>>Syrups and Sweeteners</option>
+                    <option value="ผงเครื่องดื่มและส่วนผสมอื่นๆ" <?php echo $category == 'ผงเครื่องดื่มและส่วนผสมอื่นๆ' ? 'selected' : 'ผงเครื่องดื่มและส่วนผสมอื่นๆ'; ?>>Drink Powders and Other Ingredients</option>
+                    <option value="ขนมและของว่าง" <?php echo $category == 'ขนมและของว่าง' ? 'selected' : 'ขนมและของว่าง'; ?>>Snacks and Sweets</option>
+                    <option value="อุปกรณ์การชงกาแฟ" <?php echo $category == 'อุปกรณ์การชงกาแฟ' ? 'selected' : 'อุปกรณ์การชงกาแฟ'; ?>>Coffee Brewing Equipment</option>
+                    <option value="แก้วและภาชนะบรรจุ" <?php echo $category == 'แก้วและภาชนะบรรจุ' ? 'selected' : 'แก้วและภาชนะบรรจุ'; ?>>Cups and Containers</option>
+                    <option value="สารให้ความหวานและสารแต่งกลิ่นรส" <?php echo $category == 'สารให้ความหวานและสารแต่งกลิ่นรส' ? 'selected' : 'สารให้ความหวานและสารแต่งกลิ่นรส'; ?>>Sweeteners and Flavorings</option>
+                    <option value="ผลิตภัณฑ์เพิ่มมูลค่า" <?php echo $category == 'ผลิตภัณฑ์เพิ่มมูลค่า' ? 'selected' : 'ผลิตภัณฑ์เพิ่มมูลค่า'; ?>>Value-added Products</option>
+                    <option value="อุปกรณ์เสิร์ฟ" <?php echo $category == 'อุปกรณ์เสิร์ฟ' ? 'selected' : 'อุปกรณ์เสิร์ฟ'; ?>>Serving Equipment</option> 
                 </select>
                 <div class="input-group-append">
                     <button class="btn btn-primary" type="submit">Search</button>
@@ -160,13 +156,13 @@ $conn->close();
                     <?php foreach ($products as $product): ?>
                         <div class="col-md-4 mb-4">
                             <div class="card product-card">
-                                <img src="../picture_product/<?php echo htmlspecialchars($product['product_pic']); ?>" class="card-img-top product-image" alt="<?php echo htmlspecialchars($product['product_name']); ?>">
+                                <img src="../../upload/picture_product/<?php echo htmlspecialchars($product['product_pic']); ?>" class="card-img-top product-image" alt="<?php echo htmlspecialchars($product['product_name']); ?>">
                                 <div class="card-body">
                                     <h5 class="card-title"><?php echo htmlspecialchars($product['product_name']); ?></h5>
                                     <p class="card-text">
-                                        หมวดหมู่: <?php echo htmlspecialchars($product['category']); ?><br>
-                                        ราคา: ฿<?php echo number_format($product['price_set'], 2); ?><br>
-                                        จำนวน: <?php echo htmlspecialchars($product['quantity_set']); ?>
+                                        Category: <?php echo htmlspecialchars($product['category']); ?><br>
+                                        Price: ฿<?php echo number_format($product['price_set'], 2); ?><br>
+                                        Quantity: <?php echo htmlspecialchars($product['quantity_set']); ?>
                                     </p>
                                     <button class="btn btn-primary btn-sm view-details" data-product-id="<?php echo $product['listproduct_id']; ?>">View Details</button>
                                 </div>
@@ -174,7 +170,7 @@ $conn->close();
                         </div>
                     <?php endforeach; ?>
                     <?php else: ?>
-                        <p>ไม่พบสินค้าที่ตรงกับเงื่อนไขการค้นหา</p>
+                        <p>No products found matching the search criteria.</p>
                     <?php endif; ?>
                 </div>
             </div>
@@ -216,7 +212,7 @@ $conn->close();
                     <p id="modal-product-quantity-set"></p>
                     <p id="modal-product-info"></p>
                     <div class="form-group">
-                        <label for="modal-product-quantity">จำนวนเชตที่ต้องการ:</label>
+                        <label for="modal-product-quantity">Quantity of Sets Desired:</label>
                         <input type="number" class="form-control" id="modal-product-quantity" min="1" value="1">
                     </div>
                 </div>
@@ -293,7 +289,7 @@ $conn->close();
                 let productId = $(this).data('product-id');
                 let product = products.find(p => p.listproduct_id == productId);
                 
-                $('#modal-product-image').attr('src', '../picture_product/' + product.product_pic);
+                $('#modal-product-image').attr('src', '../../upload/picture_product/' + product.product_pic);
                 $('#modal-product-name').text(product.product_name);
                 $('#modal-product-category').text('หมวดหมู่: ' + product.category);
                 $('#modal-product-price').text('ราคา: ฿' + parseFloat(product.price_set).toFixed(2));
